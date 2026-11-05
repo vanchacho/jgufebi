@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ჯგუფების შემთხვევითი გადანაწილება</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;border-radius:0}
+  body{font-family:"Segoe UI","Noto Sans Georgian",sans-serif;background:radial-gradient(circle at top,#1e2a5a,#0b1023 70%);color:#fff;min-height:100vh;padding:32px 24px}
+  h1{text-align:center;font-size:1.9rem;margin-bottom:6px;letter-spacing:.5px}
+  .sub{text-align:center;color:#9fb0e0;margin-bottom:24px}
+  .stage{max-width:1100px;margin:0 auto}
+  .drum{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);padding:24px;text-align:center;margin-bottom:22px}
+  .turn{display:none;color:#ffd166;font-weight:600;min-height:1.4em;margin-bottom:12px;font-size:1.05rem}
+  .window{height:88px;display:flex;align-items:center;justify-content:center;font-size:2.3rem;font-weight:700;background:#0b1023;border:2px solid #3a4c9a;margin:0 auto 18px;max-width:560px;transition:border-color .3s,box-shadow .3s}
+  .window.win{border-color:#ffd166;box-shadow:0 0 24px rgba(255,209,102,.5)}
+  .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  button{font:inherit;font-size:1rem;padding:12px 26px;border:0;cursor:pointer;font-weight:600}
+  .go{background:linear-gradient(135deg,#ff6b6b,#ffa94d);color:#fff}
+  .all{background:#3a4c9a;color:#fff}
+  .reset{background:transparent;color:#9fb0e0;border:1px solid #3a4c9a}
+  button:hover:not(:disabled){filter:brightness(1.1)}
+  button:disabled{opacity:.4;cursor:default}
+  .pool{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
+  .chip{background:rgba(255,255,255,.1);padding:6px 12px;font-size:.9rem;transition:all .2s}
+  .chip.hot{background:#ffd166;color:#111}
+  .chip.gone{opacity:.15;text-decoration:line-through}
+  .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .group{padding:16px;background:rgba(255,255,255,.06);border:2px solid transparent;border-top:4px solid var(--c);transition:border-color .3s}
+  .group.active{border-color:#ffd166;border-top-color:var(--c)}
+  .group h2{font-size:1.15rem;margin-bottom:12px}
+  .member{background:rgba(255,255,255,.1);padding:10px 12px;margin-bottom:8px;border-left:4px solid var(--c);animation:pop .4s ease}
+  .slot{border:1px dashed rgba(255,255,255,.2);height:42px;margin-bottom:8px}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <h1>ჯგუფების შემთხვევითი გადანაწილება</h1>
+
+  <div class="drum">
+    <div class="turn" id="turn">დააჭირე „წილისყრა“-ს დასაწყებად</div>
+    <div class="window" id="win">?</div>
+    <div class="btns">
+      <button class="go" id="go">წილისყრა</button>
+      <button class="all" id="all">ყველას ერთად</button>
+      <button class="reset" id="reset">თავიდან</button>
+    </div>
+    <div class="pool" id="pool"></div>
+  </div>
+
+  <div class="groups" id="groups"></div>
+</div>
+
+<script>
+(function(){
+  var D="d1lIUOY4rOY4QOY4cOY4QOY4VOY4YOY4gA5ghz5ghD5ghLCIsICmDGumDGOmDGelDGOqDGOkDGOoDGOkDGerDGOkDG+mDGOIQOY4lOY4UOY4ROY4iACLiQ5ghv6ghD5gh76ghT5ghH5ghD5ghL5ghDymDGOkDGOmDGOoDGOkDG+mDGuIgwiIUOY4rOY4QOY4ROY4bOY4jOY4TOY4gQ5ghz5ghT5ghr5ghT5ghLCIsIClDG+qDGOkDGumDGOlDGelDGOoDGOkDGOIaOY4YOY4UOY4uOY4YOY4bOY4isFIs0lIYOY4aOY4YOY4VOY4oOY4QOY4SOY4UOY4ROY4gA5ghz5ghj5ghD6ghj5ghLCIsICmDGumDGOmDGelDGOqDGOkDGekDGOkDGOoDG+oDGulDGOIYOY4SOY4gOY4dOY4YOY4SOY4iACLiQ5ghv6ghD5ghz5ghT5ghH5ghD6gh35gh/6ghDCkDGOnDGOkDGOnDGuIgwiIQOY4cOY4jOY4gOY4QOY4ZOY4gg5ghL6ghH6ghj5ghD6ghX6ghLCIsIClDG+qDGOmDGOoDGOlDGekDGOkDGumDG+oDGeoDGOIcOY4QOY4gOY4YOY4bOY4QOY4isFIs0lIUOY4rOY4YOY4ZOY4QOY4oOY4QOY4VOY4gQ5ghz5ghT5ghr5ghT5ghLCIsIClDG+qDGOkDGumDGOlDGelDGOoDGOkDGOIYOY4aOY4ZOY4QOY4gOY4YOY4iACLig5ghr5ghj5ghX5ghj6ghD5ghr5ghT5ghL5ghDSnDGOnDGOmDGOnDGuIgwiIQOY4YOY4ZOY4YOY4vOY4gOY4dOY4vOY4gA5ghn5ghz5ghD5ghLCIsICmDGumDGOmDGelDGOqDGOmDGOoDGOkDG+lDGOmDGurDGOIQOY4cOY4dOY4UOY4XOY4isFIs0lIYOY4aOY4YOY4VOY4oOY4QOY4aOY4nOY4UOY4oOY4gA5ghj5ghf5ghD5ghz5ghLCIsICmDGumDGOmDGelDGOqDGOmDGuoDGenDGukDGenDGukDGOIXOY4YOY4VOY4QOY4TOY4iACLiQ5ghv6ghD5ghD6ghD5ghX5ghf5ghDCkDGumDGemDGOlDG+lDGuIgwiIYOY4cOY4QOY4YOY4aOY4VOY4mOY4gOY4QOY4g05ghD6ghD5ghv5ghLCIsICkDGelDGOkDGerDG+oDGemDGOIYOY4aOY4ZOY4QOY4gOY4YOY4is1W";
+  var G=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(D.split("").reverse().join("")),function(c){return c.charCodeAt(0)})));
+  var COLORS=["#ff6b6b","#4dabf7","#51cf66","#ffd43b","#cc5de8","#ff922b"];
+  var NAMES=["ჯგუფი 1","ჯგუფი 2","ჯგუფი 3","ჯგუფი 4","ჯგუფი 5","ჯგუფი 6"];
+  var ROWS=Math.max.apply(null,G.map(function(g){return g.length}));
+
+  // draw order: round by round, group 1 → last group
+  var ORDER=[];
+  for(var r=0;r<ROWS;r++)for(var g=0;g<G.length;g++)if(G[g][r])ORDER.push({g:g,n:G[g][r]});
+
+  var $=function(id){return document.getElementById(id)};
+  var step=0,busy=false,chips={};
+
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+
+  function build(){
+    step=0;busy=false;
+    $("win").textContent="?";$("win").classList.remove("win");
+    $("turn").textContent="დააჭირე „წილისყრა“-ს დასაწყებად";
+    var pool=$("pool");pool.innerHTML="";chips={};
+    shuffle(ORDER.map(function(o){return o.n})).forEach(function(n){
+      var c=document.createElement("span");c.className="chip";c.textContent=n;pool.appendChild(c);chips[n]=c;
+    });
+    var gs=$("groups");gs.innerHTML="";
+    G.forEach(function(grp,i){
+      var d=document.createElement("div");d.className="group";d.id="g"+i;d.style.setProperty("--c",COLORS[i%6]);
+      d.innerHTML='<h2>'+NAMES[i]+'</h2>';
+      for(var k=0;k<grp.length;k++){var s=document.createElement("div");s.className="slot";d.appendChild(s)}
+      gs.appendChild(d);
+    });
+    btns();
+  }
+  function btns(){var done=step>=ORDER.length;$("go").disabled=busy||done;$("all").disabled=busy||done;$("reset").disabled=busy}
+  function remaining(){var s={};for(var i=step;i<ORDER.length;i++)s[ORDER[i].n]=1;return Object.keys(s)}
+
+  function drawOne(fast){
+    return new Promise(function(res){
+      if(step>=ORDER.length)return res();
+      busy=true;btns();
+      var t=ORDER[step],left=remaining();
+      document.querySelectorAll(".group").forEach(function(e){e.classList.remove("active")});
+      $("g"+t.g).classList.add("active");
+      $("turn").textContent="ვირჩევთ მონაწილეს — "+NAMES[t.g];
+      $("win").classList.remove("win");
+      var total=fast?14:30,i=0,last=null,delay=fast?35:45;
+      (function spin(){
+        if(last)last.classList.remove("hot");
+        var name=(i>=total-1)?t.n:left[Math.floor(Math.random()*left.length)];
+        if(left.length>1&&i<total-1&&name===t.n&&i>total-5)name=left[(left.indexOf(t.n)+1)%left.length];
+        $("win").textContent=name;last=chips[name];if(last)last.classList.add("hot");
+        i++;
+        if(i<total){delay*=fast?1.08:1.1;setTimeout(spin,delay)}
+        else{
+          $("win").classList.add("win");
+          setTimeout(function(){
+            if(last)last.classList.remove("hot");
+            chips[t.n].classList.add("gone");
+            var grp=$("g"+t.g),slot=grp.querySelector(".slot");
+            var m=document.createElement("div");m.className="member";m.textContent=t.n;
+            slot?grp.replaceChild(m,slot):grp.appendChild(m);
+            $("turn").textContent=t.n+" — "+NAMES[t.g];
+            step++;busy=false;
+            if(step>=ORDER.length){$("turn").textContent="წილისყრა დასრულდა";document.querySelectorAll(".group").forEach(function(e){e.classList.remove("active")})}
+            btns();res();
+          },fast?250:600);
+        }
+      })();
+    });
+  }
+
+  $("go").onclick=function(){drawOne(false)};
+  $("all").onclick=function(){
+    (function next(){if(step<ORDER.length)drawOne(true).then(function(){setTimeout(next,300)})})();
+  };
+  $("reset").onclick=build;
+  document.addEventListener("keydown",function(e){if(e.code==="Space"&&!busy){e.preventDefault();drawOne(false)}});
+
+
+  build();
+})();
+</script>
+</body>
+</html>
