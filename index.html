@@ -43,8 +43,6 @@
     <div class="window" id="win">?</div>
     <div class="btns">
       <button class="go" id="go">წილისყრა</button>
-      <button class="all" id="all">ყველას ერთად</button>
-      <button class="reset" id="reset">თავიდან</button>
     </div>
     <div class="pool" id="pool"></div>
   </div>
@@ -86,7 +84,8 @@
     });
     btns();
   }
-  function btns(){var done=step>=ORDER.length;$("go").disabled=busy||done;$("all").disabled=busy||done;$("reset").disabled=busy}
+  var running=false;
+  function btns(){$("go").disabled=running||step>=ORDER.length}
   function remaining(){var s={};for(var i=step;i<ORDER.length;i++)s[ORDER[i].n]=1;return Object.keys(s)}
 
   function drawOne(fast){
@@ -124,12 +123,11 @@
     });
   }
 
-  $("go").onclick=function(){drawOne(false)};
-  $("all").onclick=function(){
-    (function next(){if(step<ORDER.length)drawOne(true).then(function(){setTimeout(next,300)})})();
-  };
-  $("reset").onclick=build;
-  document.addEventListener("keydown",function(e){if(e.code==="Space"&&!busy){e.preventDefault();drawOne(false)}});
+  function runAll(){
+    if(running||step>=ORDER.length)return;running=true;btns();
+    (function next(){if(step<ORDER.length)drawOne(true).then(function(){setTimeout(next,300)});else{running=false;btns()}})();
+  }
+  $("go").onclick=runAll;
 
 
   build();
